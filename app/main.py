@@ -1,19 +1,25 @@
-from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel
-from app.services.ai_service import analyze_code
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from typing import List
 
 app = FastAPI()
 
-class CodeInput(BaseModel):
-    code: str
+# Active connections
+active_connections: List[WebSocket] = []
 
-@app.post("/analyze/")
-async def analyze_code_api(code_input: CodeInput):
+@app.websocket("/ws")
+async def websocket_endpoint(websocket: WebSocket):
     """
-    Endpoint to analyze code using DeepSeek-Coder.
+    Handles WebSocket connections for real-time collaboration.
     """
+    await websocket.accept()
+    active_connections.append(websocket)
+
     try:
-        result = analyze_code(code_input.code)
-        return {"suggestions": result}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        while True:
+            data = await websocket.receive_text()
+            # Broadcast message to all connected clients
+            for connection in active_connections:
+                if connection != websocket:
+                    await connection.send_text(data)
+    except WebSocketDisconnect:
+        active_connections.remove(websocket)
