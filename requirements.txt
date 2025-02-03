@@ -1,0 +1,32 @@
+# Core FastAPI setup
+fastapi
+uvicorn
+
+# WebSockets for real-time collaboration
+websockets
+
+# AI Model Integration with Ollama
+ollama
+
+# Database ORM & Validation
+sqlalchemy
+pydantic
+asyncpg  # PostgreSQL async driver
+
+# Security & Authentication
+passlib[bcrypt]  # Password hashing
+pyjwt  # JWT for authentication
+python-decouple  # Environment variable management
+
+# HTTP Requests (if calling external APIs)
+httpx
+
+# Testing Frameworks
+pytest
+pytest-asyncio
+httpx  # For API testing
+
+# Linting & Formatting
+black
+isort
+flake8
