@@ -11,4 +11,15 @@ class UserOut(BaseModel):
     role: str
 
     class Config:
-        orm_mode = True
+        from_attributes = True 
+
+class FileCreate(BaseModel):
+    filename: str
+
+class FileOut(BaseModel):
+    id: int
+    filename: str
+    owner_id: int
+
+    class Config:
+        from_attributes = True  

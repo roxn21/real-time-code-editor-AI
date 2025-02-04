@@ -13,7 +13,13 @@ def get_current_user(credentials: HTTPAuthorizationCredentials = Security(securi
     if not payload:
         raise HTTPException(status_code=401, detail="Invalid or expired token")
 
+    try:
+        payload["sub"] = int(payload["sub"])
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid user ID format")
+
     return payload
+
 
 def require_role(required_role: str):
     """
