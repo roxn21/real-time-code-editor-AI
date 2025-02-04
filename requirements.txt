@@ -32,3 +32,5 @@ isort
 flake8
 
 redis
+
+pytest
