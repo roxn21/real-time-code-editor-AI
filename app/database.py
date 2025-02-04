@@ -6,7 +6,7 @@ from decouple import config
 DATABASE_URL = config("DATABASE_URL", default="sqlite+aiosqlite:///./test.db")
 
 # Create async engine
-engine = create_async_engine(DATABASE_URL, echo=True)
+engine = create_async_engine(DATABASE_URL, echo=False)
 
 # Define Base (Fix for ImportError in models.py)
 Base = declarative_base()
