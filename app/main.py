@@ -10,6 +10,8 @@ from app.schemas import UserCreate, UserOut, FileCreate, FileOut
 from app.auth.auth_service import create_jwt_token, verify_password, hash_password, decode_jwt_token
 from app.middleware.rbac import require_role, get_current_user
 import asyncio
+import json
+from app.redis_client import redis_client
 
 app = FastAPI()
 
@@ -167,3 +169,27 @@ async def add_collaborator(file_id: int, collab_id: int, user: dict = Depends(re
     await db.commit()
 
     return {"message": f"User {collab_id} added as collaborator to file {file_id}"}
+
+class CodeRequest(BaseModel):
+    code: str
+
+@app.post("/ai-debug/")
+async def ai_debug_code(request: CodeRequest):
+    # Check if the result is already cached in Redis
+    cached_result = redis_client.get(request.code)
+    
+    if cached_result:
+        # Return cached result if available
+        return json.loads(cached_result)
+    
+    # If no cache, process the AI response (this is where you call your AI model)
+    ai_response = get_ai_suggestions(request.code)  # Placeholder for actual AI logic
+    
+    # Cache the response in Redis for future requests
+    redis_client.setex(request.code, 3600, json.dumps(ai_response))  # Cache for 1 hour (3600 seconds)
+    
+    return ai_response
+
+def get_ai_suggestions(code: str):
+    # Placeholder for your AI response logic (DeepSeek-Coder integration)
+    return {"suggestion": "Fix issue here!"}
