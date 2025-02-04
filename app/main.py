@@ -13,7 +13,7 @@ import asyncio
 import json
 from app.redis_client import redis_client
 
-app = FastAPI()
+app = FastAPI(title="Real-Time Code Editor API", description="FastAPI backend for collaborative code editing with AI-powered debugging.", version="1.0")
 
 # Track active WebSocket sessions per file
 active_sessions: Dict[int, List[WebSocket]] = {}
@@ -30,14 +30,14 @@ class LoginInput(BaseModel):
     username: str
     password: str
 
-@app.get("/health")
+@app.get("/health", summary="Health Check", response_description="Service Health Status")
 async def health_check():
     """Health check API to ensure FastAPI is running"""
     return {"status": "ok"}
 
-@app.post("/login/")
+@app.post("/login/", summary="User Login", response_description="Access Token")
 async def login(user_data: LoginInput, db: AsyncSession = Depends(get_db)):
-    """ Login API to generate JWT token for authentication. """
+    """Authenticate user and return JWT token"""
     result = await db.execute(select(User).where(User.username == user_data.username))
     user = result.scalars().first()
     
@@ -47,9 +47,9 @@ async def login(user_data: LoginInput, db: AsyncSession = Depends(get_db)):
     token = create_jwt_token(user.id, user.role)
     return {"access_token": token}
 
-@app.post("/register/", response_model=UserOut)
+@app.post("/register/", response_model=UserOut, summary="User Registration", response_description="Registered User")
 async def register_user(user: UserCreate, db: AsyncSession = Depends(get_db)):
-    """ Register a new user. """
+    """Register a new user and store their credentials"""
     async with db.begin():
         result = await db.execute(select(User).where(User.username == user.username))
         existing_user = result.scalars().first()
@@ -67,79 +67,57 @@ async def register_user(user: UserCreate, db: AsyncSession = Depends(get_db)):
 
     return new_user
 
-@app.post("/create-file/", response_model=FileOut)
-async def create_file(file_data: FileCreate, user: dict = Depends(require_role("owner")), db: AsyncSession = Depends(get_db)):
-    """ Only owners can create new code files. """
-    result = await db.execute(select(CodeFile).where(CodeFile.filename == file_data.filename))
-    existing_file = result.scalars().first()
-    if existing_file:
-        raise HTTPException(status_code=400, detail="Filename already exists")
-
-    new_file = CodeFile(filename=file_data.filename, owner_id=int(user["sub"]))
-    db.add(new_file)
-    await db.commit()
-    await db.refresh(new_file)
-    return new_file
-
-@app.get("/files/", response_model=list[FileOut])
+@app.get("/files/", response_model=list[FileOut], summary="List Code Files", response_description="List of code files")
 async def list_files(db: AsyncSession = Depends(get_db)):
-    """ Get a list of all available code files. """
+    """Retrieve a list of all available code files"""
     result = await db.execute(select(CodeFile))
     files = result.scalars().all()
 
     if not files:
         raise HTTPException(status_code=404, detail="No files found")
-
+    
     return files
 
 @app.websocket("/ws/{file_id}")
 async def websocket_endpoint(websocket: WebSocket, file_id: int, db: AsyncSession = Depends(get_db)):
-    """ Secure WebSocket connection using JWT authentication & Redis Pub/Sub """
-    
-    # Accept WebSocket connection
+    """WebSocket connection for real-time collaborative editing"""
     await websocket.accept()
-
-    # Extract JWT token from query parameters
+    
     query_params = websocket.scope.get("query_string", b"").decode()
     token = next((param.split("=")[1] for param in query_params.split("&") if param.startswith("token=")), None)
-
+    
     if not token:
         await websocket.close(code=1008, reason="Missing authentication token")
         return
-
-    # Decode JWT token
+    
     user = decode_jwt_token(token)
     if not user:
         await websocket.close(code=1008, reason="Invalid or expired token")
         return
 
-    # Check if file exists
+    # Check file and permissions
     result = await db.execute(select(CodeFile).where(CodeFile.id == file_id))
     file = result.scalars().first()
     if not file:
         await websocket.close(code=1003, reason="File not found")
         return
-
-    # Check if user is owner or collaborator
+    
     is_owner = user["sub"] == file.owner_id
     is_collaborator = await db.execute(select(collaborators_table).where(
         (collaborators_table.c.user_id == user["sub"]) & (collaborators_table.c.file_id == file_id)
     ))
-
+    
     if not is_owner and not is_collaborator.scalar():
         await websocket.close(code=1008, reason="Insufficient permissions")
         return
 
-    # Track active sessions
     if file_id not in active_sessions:
         active_sessions[file_id] = []
     active_sessions[file_id].append(websocket)
 
-    # Redis Pub/Sub Listener
     async def listen_to_redis():
         pubsub = redis_client.pubsub()
         pubsub.subscribe(f"file_{file_id}")
-
         for message in pubsub.listen():
             if message["type"] == "message":
                 await websocket.send_json({"data": message["data"]})
@@ -149,47 +127,26 @@ async def websocket_endpoint(websocket: WebSocket, file_id: int, db: AsyncSessio
     try:
         while True:
             data = await websocket.receive_text()
-            redis_client.publish(f"file_{file_id}", data)  # Cache message in Redis
+            redis_client.publish(f"file_{file_id}", data)
     except WebSocketDisconnect:
         active_sessions[file_id].remove(websocket)
         await websocket.close(code=1000, reason="User disconnected")
 
-@app.post("/files/{file_id}/add-collaborator/{collab_id}")
-async def add_collaborator(file_id: int, collab_id: int, user: dict = Depends(require_role("owner")), db: AsyncSession = Depends(get_db)):
-    """ Allows file owners to assign collaborators. """
-    result = await db.execute(select(CodeFile).where(CodeFile.id == file_id))
-    file = result.scalars().first()
-    if not file:
-        raise HTTPException(status_code=404, detail="File not found")
-
-    if user["sub"] != file.owner_id:
-        raise HTTPException(status_code=403, detail="Only the file owner can add collaborators")
-
-    await db.execute(collaborators_table.insert().values(user_id=collab_id, file_id=file_id))
-    await db.commit()
-
-    return {"message": f"User {collab_id} added as collaborator to file {file_id}"}
-
 class CodeRequest(BaseModel):
     code: str
 
-@app.post("/ai-debug/")
+@app.post("/ai-debug/", summary="AI Code Debugging", response_description="AI Suggestions")
 async def ai_debug_code(request: CodeRequest):
-    # Check if the result is already cached in Redis
+    """Analyze code and return AI-generated debugging suggestions"""
     cached_result = redis_client.get(request.code)
     
     if cached_result:
-        # Return cached result if available
         return json.loads(cached_result)
     
-    # If no cache, process the AI response (this is where you call your AI model)
-    ai_response = get_ai_suggestions(request.code)  # Placeholder for actual AI logic
-    
-    # Cache the response in Redis for future requests
-    redis_client.setex(request.code, 3600, json.dumps(ai_response))  # Cache for 1 hour (3600 seconds)
-    
+    ai_response = get_ai_suggestions(request.code)
+    redis_client.setex(request.code, 3600, json.dumps(ai_response))
     return ai_response
 
 def get_ai_suggestions(code: str):
-    # Placeholder for your AI response logic (DeepSeek-Coder integration)
+    """Mock AI function to return debugging suggestions"""
     return {"suggestion": "Fix issue here!"}
