@@ -30,3 +30,5 @@ httpx  # For API testing
 black
 isort
 flake8
+
+redis

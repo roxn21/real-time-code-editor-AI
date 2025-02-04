@@ -16,12 +16,20 @@ def verify_password(plain_password, hashed_password) -> bool:
 
 def create_jwt_token(user_id: int, role: str) -> str:
     expiration = datetime.datetime.utcnow() + datetime.timedelta(hours=2)
-    payload = {"sub": str(user_id), "role": role, "exp": expiration} 
+    # Store user_id as an integer in the payload
+    payload = {"sub": user_id, "role": role, "exp": expiration}
     return jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
 
 def decode_jwt_token(token: str):
     try:
-        return jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        # Ensure that 'sub' is an integer. Convert if it's a string.
+        if isinstance(payload.get("sub"), str):
+            try:
+                payload["sub"] = int(payload["sub"])
+            except ValueError:
+                return None
+        return payload
     except jwt.ExpiredSignatureError:
         return None
     except jwt.InvalidTokenError:
