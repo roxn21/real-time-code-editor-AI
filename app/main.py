@@ -1,17 +1,18 @@
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Query, HTTPException, Depends
 from pydantic import BaseModel
 from typing import Dict
-from app.auth.auth_service import create_jwt_token, verify_password, hash_password, decode_jwt_token  
+from sqlalchemy.future import select
+from sqlalchemy.ext.asyncio import AsyncSession
+from app.database import get_db
+from app.models import User
+from app.schemas import UserCreate, UserOut
+from app.auth.auth_service import create_jwt_token, verify_password, hash_password, decode_jwt_token
+from app.middleware.rbac import require_role  
 
 app = FastAPI()
 
 # Track connected users and their cursors
 active_users: Dict[str, WebSocket] = {}
-
-# Fake user database (for now)
-fake_users_db = {
-    "user1": {"password": hash_password("password123")}
-}
 
 class LoginInput(BaseModel):
     username: str
@@ -23,16 +24,41 @@ async def health_check():
     return {"status": "ok"}
 
 @app.post("/login/")
-async def login(user_data: LoginInput):
-    """
-    Login API to generate JWT token for authentication.
-    """
-    user = fake_users_db.get(user_data.username)
-    if not user or not verify_password(user_data.password, user["password"]):
+async def login(user_data: LoginInput, db: AsyncSession = Depends(get_db)):
+    result = await db.execute(select(User).where(User.username == user_data.username))
+    user = result.scalars().first()
+
+    if not user or not verify_password(user_data.password, user.hashed_password):
         raise HTTPException(status_code=400, detail="Invalid username or password")
     
-    token = create_jwt_token(user_data.username)
+    # Generate token including the role
+    token = create_jwt_token(user.username, user.role)
     return {"access_token": token}
+
+@app.post("/register/", response_model=UserOut)
+async def register_user(user: UserCreate, db: AsyncSession = Depends(get_db)):
+    # Check if the username already exists
+    result = await db.execute(select(User).where(User.username == user.username))
+    existing_user = result.scalars().first()
+    if existing_user:
+        raise HTTPException(status_code=400, detail="Username already registered")
+    
+    new_user = User(
+        username=user.username,
+        hashed_password=hash_password(user.password),
+        role=user.role
+    )
+    db.add(new_user)
+    await db.commit()
+    await db.refresh(new_user)
+    return new_user
+
+@app.post("/create-file/")
+async def create_file(file_name: str, user: dict = Depends(require_role("owner"))):
+    """
+    Only owners can create new code files.
+    """
+    return {"message": f"File '{file_name}' created by {user['sub']}"}
 
 @app.websocket("/ws/{user_id}")
 async def websocket_endpoint(websocket: WebSocket, user_id: str, token: str = Query(...)):

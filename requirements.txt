@@ -11,7 +11,7 @@ ollama
 # Database ORM & Validation
 sqlalchemy
 pydantic
-asyncpg  # PostgreSQL async driver
+aiosqlite  #Since we are using SQLite asynchronously with SQLAlchemy, installing aiosqlite.
 
 # Security & Authentication
 passlib[bcrypt]  # Password hashing
