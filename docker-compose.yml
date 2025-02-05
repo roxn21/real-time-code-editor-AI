@@ -16,6 +16,11 @@ services:
     container_name: redis_server
     ports:
       - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   celery_worker:
     build: .
