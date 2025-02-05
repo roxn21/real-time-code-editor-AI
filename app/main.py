@@ -12,6 +12,8 @@ from app.middleware.rbac import require_role, get_current_user
 import asyncio
 import json
 from app.redis_client import redis_client
+from fastapi import BackgroundTasks
+from app.celery_worker import analyze_code_task
 
 app = FastAPI(title="Real-Time Code Editor API", description="FastAPI backend for collaborative code editing with AI-powered debugging.", version="1.0")
 
@@ -150,3 +152,14 @@ async def ai_debug_code(request: CodeRequest):
 def get_ai_suggestions(code: str):
     """Mock AI function to return debugging suggestions"""
     return {"suggestion": "Fix issue here!"}
+
+class CodeInput(BaseModel):
+    code: str
+
+@app.post("/analyze/")
+async def analyze_code_api(code_input: CodeInput, background_tasks: BackgroundTasks):
+    """
+    Endpoint to analyze code asynchronously.
+    """
+    task = analyze_code_task.apply_async(args=[code_input.code])
+    return {"task_id": task.id, "message": "Analysis started, check results later."}

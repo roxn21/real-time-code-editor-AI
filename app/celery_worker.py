@@ -1,8 +1,30 @@
+from celery import Celery
+from decouple import config
 from app.database import redis_client
 import json
 import ollama
 
-def analyze_code(code: str) -> dict:
+REDIS_URL = f"redis://{config('REDIS_HOST', default='localhost')}:{config('REDIS_PORT', default=6380)}/0"
+
+celery_app = Celery(
+    "tasks",
+    broker=REDIS_URL,
+    backend=REDIS_URL
+)
+
+celery_app.conf.update(
+    task_serializer="json",
+    result_serializer="json",
+    accept_content=["json"],
+    timezone="UTC",
+    enable_utc=True
+)
+
+# Move the task registration here, after the Celery app is defined
+from app.services.ai_service import analyze_code  # Import the function from ai_service
+
+@celery_app.task
+def analyze_code_task(code: str) -> dict:
     """
     Checks Redis for a cached response before calling the AI model.
     Stores new responses in Redis for faster retrieval.
