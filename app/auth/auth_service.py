@@ -15,7 +15,7 @@ def verify_password(plain_password, hashed_password) -> bool:
     return pwd_context.verify(plain_password, hashed_password)
 
 def create_jwt_token(user_id: int, role: str) -> str:
-    expiration = datetime.datetime.utcnow() + datetime.timedelta(hours=2)
+    expiration = datetime.datetime.utcnow() + datetime.timedelta(minutes=15)
     # Store user_id as an integer in the payload
     payload = {"sub": user_id, "role": role, "exp": expiration}
     return jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
