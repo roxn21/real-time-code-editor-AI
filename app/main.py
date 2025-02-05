@@ -11,9 +11,11 @@ from app.auth.auth_service import create_jwt_token, verify_password, hash_passwo
 from app.middleware.rbac import require_role, get_current_user
 import asyncio
 import json
-from app.redis_client import redis_client
+from app import redis_client
 from fastapi import BackgroundTasks
 from app.celery_worker import analyze_code_task
+from celery.result import AsyncResult
+from app.celery_worker import celery_app
 
 app = FastAPI(title="Real-Time Code Editor API", description="FastAPI backend for collaborative code editing with AI-powered debugging.", version="1.0")
 
@@ -163,3 +165,20 @@ async def analyze_code_api(code_input: CodeInput, background_tasks: BackgroundTa
     """
     task = analyze_code_task.apply_async(args=[code_input.code])
     return {"task_id": task.id, "message": "Analysis started, check results later."}
+
+
+@app.get("/task-status/{task_id}")
+async def get_task_status(task_id: str):
+    """
+    Check the status of an AI debugging task.
+    """
+    task_result = AsyncResult(task_id, app=celery_app)
+
+    if task_result.state == "PENDING":
+        return {"task_id": task_id, "status": "Pending", "result": None}
+    elif task_result.state == "SUCCESS":
+        return {"task_id": task_id, "status": "Completed", "result": task_result.result}
+    elif task_result.state == "FAILURE":
+        return {"task_id": task_id, "status": "Failed", "error": str(task_result.result)}
+    else:
+        return {"task_id": task_id, "status": task_result.state}

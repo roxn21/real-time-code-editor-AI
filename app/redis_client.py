@@ -1,11 +1,18 @@
+from typing import Dict
 import redis
-from fastapi import HTTPException
 
-# Connect to Redis
-def get_redis_client():
-    try:
-        return redis.StrictRedis(host="localhost", port=6379, db=0, decode_responses=True)
-    except Exception as e:
-        raise HTTPException(status_code=500, detail="Redis connection error")
+class RedisClient:
+    def __init__(self):
+        self.redis_conn = None
 
-redis_client = get_redis_client()
+    def get_redis_connection(self) -> redis.Redis:
+        try:
+            self.redis_conn = redis.Redis(host='localhost', port=6380, db=0)
+            return self.redis_conn
+        except Exception as e:
+            print(f"Error connecting to Redis: {str(e)}")
+            return None
+
+    def close_redis_connection(self):
+        if self.redis_conn is not None:
+            self.redis_conn.close()

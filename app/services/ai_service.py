@@ -1,6 +1,6 @@
 from typing import Dict, Any
 import logging
-from app.database import RedisClient
+from app.database import redis_client
 import json
 import ollama
 from celery import Celery
@@ -12,7 +12,7 @@ logger = get_task_logger(__name__)
 
 class AIService:
     def __init__(self):
-        self.redis_client = RedisClient()
+        self.redis_client = redis_client()
 
     def analyze_code(self, code: str) -> Dict[str, Any]:
         """

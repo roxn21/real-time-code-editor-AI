@@ -21,7 +21,7 @@ celery_app.conf.update(
 )
 
 # Move the task registration here, after the Celery app is defined
-from app.services.ai_service import analyze_code  # Import the function from ai_service
+from app.services.ai_service import analyze_code_task  # Import the function from ai_service
 
 @celery_app.task
 def analyze_code_task(code: str) -> dict:
