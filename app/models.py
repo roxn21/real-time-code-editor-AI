@@ -1,8 +1,9 @@
-from sqlalchemy import Column, Integer, String, ForeignKey, DateTime, Table, Text
-from sqlalchemy.orm import relationship
-from datetime import datetime
-from app.database import Base
+from sqlalchemy import Column, Integer, String, ForeignKey, Text, Table
+from sqlalchemy.ext.asyncio import async_session
+from sqlalchemy.orm import declarative_base, relationship
 from sqlalchemy.sql import func
+
+Base = declarative_base()
 
 # Many-to-Many relationship table between Users and CodeFiles
 collaborators_table = Table(
@@ -14,9 +15,9 @@ collaborators_table = Table(
 
 class User(Base):
     __tablename__ = "users"
-    
+
     id = Column(Integer, primary_key=True, index=True)
-    username = Column(String, unique=True, index=True, nullable=False)
+    username = Column(String(100), unique=True, index=True, nullable=False)  # Updated to 100 characters
     hashed_password = Column(String, nullable=False)
     role = Column(String, default="collaborator")  # Possible roles: "owner", "collaborator"
 
@@ -29,7 +30,7 @@ class CodeFile(Base):
     __tablename__ = "code_files"
 
     id = Column(Integer, primary_key=True, index=True)
-    filename = Column(String, unique=True, nullable=False)
+    filename = Column(String(100), unique=True, nullable=False)  # Updated to 100 characters
     content = Column(Text, default="")  # Store the code inside the file
     owner_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"))
 
@@ -41,11 +42,9 @@ class CodeFile(Base):
 class EditingSession(Base):
     __tablename__ = "editing_sessions"
 
-    id = Column(Integer, primary_key=True, index=True)
-    file_id = Column(Integer, ForeignKey("code_files.id", ondelete="CASCADE"))
-    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"))
-    last_modified = Column(DateTime, default=func.now(), onupdate=func.now())  # Auto-updates on edit
+    id = Column(Integer, primary_key=True)  # Define a primary key column 'id'
+    user_id = Column(Integer, ForeignKey('users.id'))
+    code_file_id = Column(Integer, ForeignKey('code_files.id'))
 
-    # Relationships
-    file = relationship("CodeFile", back_populates="sessions")
-    user = relationship("User", back_populates="sessions")
+    user = relationship("User", backref="editingsessions")
+    codefile = relationship("CodeFile", backref="editingsessions")

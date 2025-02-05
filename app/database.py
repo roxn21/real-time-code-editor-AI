@@ -26,5 +26,8 @@ async_session = sessionmaker(
 
 # Dependency for FastAPI endpoints
 async def get_db():
-    async with async_session() as session:
-        yield session
+    try:
+        async with async_session() as session:
+            yield session
+    except Exception as e:
+        print(f"Error getting database session: {e}")

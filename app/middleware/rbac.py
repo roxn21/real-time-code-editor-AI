@@ -16,6 +16,7 @@ def get_current_user(credentials: HTTPAuthorizationCredentials = Security(securi
     if not payload:
         raise HTTPException(status_code=401, detail="Invalid or expired token")
 
+    # Ensure user ID is an integer
     try:
         payload["sub"] = int(payload["sub"])
     except (ValueError, TypeError):
@@ -33,5 +34,5 @@ def require_role(required_roles: list[str]):
         if user.get("role") not in required_roles:
             raise HTTPException(status_code=403, detail="Insufficient permissions")
         return user
-    
+
     return role_dependency
