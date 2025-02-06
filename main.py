@@ -73,10 +73,8 @@ async def register_user(user: UserCreate, db: AsyncSession = Depends(get_db)):
 
     return new_user
 
-# Create file endpoint
-router = APIRouter()
 
-@router.post("/create-files/", response_model=FileOut, summary="Create Code File", response_description="Created Code File")
+@app.post("/create-files/", response_model=FileOut, summary="Create Code File", response_description="Created Code File")
 async def create_file(file: FileCreate, db: AsyncSession = Depends(get_db)):
     new_file = CodeFile(
         filename=file.filename,
