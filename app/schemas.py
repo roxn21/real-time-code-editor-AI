@@ -11,10 +11,12 @@ class UserOut(BaseModel):
     role: str
 
     class Config:
-        from_attributes = True 
+        from_attributes = True
 
 class FileCreate(BaseModel):
     filename: str
+    content: str  # Added to include file content
+    owner_id: int  # Added to specify the owner of the file
 
 class FileOut(BaseModel):
     id: int
@@ -22,4 +24,4 @@ class FileOut(BaseModel):
     owner_id: int
 
     class Config:
-        from_attributes = True  
+        from_attributes = True
