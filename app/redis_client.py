@@ -2,7 +2,7 @@ import redis
 from typing import Optional
 
 class RedisClient:
-    def __init__(self, host='localhost', port=6379, db=0):  # ✅ Ensure default Redis port (6379)
+    def __init__(self, host='localhost', port=6379, db=0):  # Ensure default Redis port (6379)
         self.redis_conn: Optional[redis.Redis] = None
         self.host = host
         self.port = port
@@ -16,10 +16,10 @@ class RedisClient:
                     host=self.host,
                     port=self.port,
                     db=self.db,
-                    decode_responses=True  # ✅ Ensures string responses instead of byte strings
+                    decode_responses=True  # Ensures string responses instead of byte strings
                 )
             except Exception as e:
-                print(f"❌ Error connecting to Redis: {str(e)}")
+                print(f" Error connecting to Redis: {str(e)}")
         return self.redis_conn
 
     def close_redis_connection(self):
@@ -28,4 +28,4 @@ class RedisClient:
             try:
                 self.redis_conn.close()
             except Exception as e:
-                print(f"❌ Error closing Redis connection: {str(e)}")
+                print(f" Error closing Redis connection: {str(e)}")
