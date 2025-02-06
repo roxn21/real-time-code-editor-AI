@@ -55,21 +55,21 @@ async def login(user_data: LoginInput, db: AsyncSession = Depends(get_db)):
 # User registration endpoint
 @app.post("/register/", response_model=UserOut, summary="User Registration", response_description="Registered User")
 async def register_user(user: UserCreate, db: AsyncSession = Depends(get_db)):
-    """Register a new user and store their credentials"""
-    async with db.begin():
-        result = await db.execute(select(User).where(User.username == user.username))
-        existing_user = result.scalars().first()
-        if existing_user:
-            raise HTTPException(status_code=400, detail="Username already registered")
+    result = await db.execute(select(User).where(User.username == user.username))
+    existing_user = result.scalars().first()
 
-        new_user = User(
-            username=user.username,
-            hashed_password=hash_password(user.password),
-            role=user.role
-        )
-        db.add(new_user)
-        await db.commit()
-        await db.refresh(new_user)
+    if existing_user:
+        raise HTTPException(status_code=400, detail="Username already registered")
+
+    new_user = User(
+        username=user.username,
+        hashed_password=hash_password(user.password),
+        role=user.role
+    )
+    db.add(new_user)
+    
+    await db.commit()  # ✅ Commit is now properly handled
+    await db.refresh(new_user)  # ✅ Refresh only after commit
 
     return new_user
 
@@ -78,21 +78,18 @@ router = APIRouter()
 
 @router.post("/create-files/", response_model=FileOut, summary="Create Code File", response_description="Created Code File")
 async def create_file(file: FileCreate, db: AsyncSession = Depends(get_db)):
-    print(f"Received file data: {file}")  # Debugging
-    """Create a new code file"""
-    try:
-        new_file = CodeFile(
-            filename=file.name,
-            content=file.content,
-            owner_id=file.owner_id
-        )
-        db.add(new_file)
-        await db.commit()
-        await db.refresh(new_file)
-        return new_file
-    except Exception as e:
-        # Handle any errors that might occur, including the transaction error
-        raise HTTPException(status_code=500, detail=str(e))
+    new_file = CodeFile(
+        filename=file.filename,
+        content=file.content,
+        owner_id=file.owner_id
+    )
+    db.add(new_file)
+    
+    await db.commit()  # ✅ Commit is now properly handled
+    await db.refresh(new_file)  # ✅ Refresh only after commit
+
+    return new_file
+
     
 # List files endpoint
 @app.get("/files/", response_model=list[FileOut], summary="List Code Files", response_description="List of code files")

@@ -1,8 +1,6 @@
 from sqlalchemy import Column, Integer, String, ForeignKey, Text, Table
-from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
-
-Base = declarative_base()
+from app.database import Base  # ✅ Import `Base` from `database.py`
 
 # Many-to-Many relationship table between Users and CodeFiles
 collaborators_table = Table(
@@ -12,6 +10,7 @@ collaborators_table = Table(
     Column("file_id", Integer, ForeignKey("code_files.id", ondelete="CASCADE")),
 )
 
+# ✅ User Model
 class User(Base):
     __tablename__ = "users"
 
@@ -25,6 +24,7 @@ class User(Base):
     sessions = relationship("EditingSession", back_populates="user", cascade="all, delete-orphan")
     collaborations = relationship("CodeFile", secondary=collaborators_table, back_populates="collaborators")
 
+# ✅ CodeFile Model
 class CodeFile(Base):
     __tablename__ = "code_files"
 
@@ -38,6 +38,7 @@ class CodeFile(Base):
     editing_sessions = relationship("EditingSession", back_populates="file", cascade="all, delete-orphan")
     collaborators = relationship("User", secondary=collaborators_table, back_populates="collaborations")
 
+# ✅ EditingSession Model
 class EditingSession(Base):
     __tablename__ = "editing_sessions"
 
