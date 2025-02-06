@@ -1,4 +1,4 @@
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Query, HTTPException, Depends, BackgroundTasks
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Query, HTTPException, Depends, BackgroundTasks, APIRouter
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import Dict, List
@@ -74,19 +74,26 @@ async def register_user(user: UserCreate, db: AsyncSession = Depends(get_db)):
     return new_user
 
 # Create file endpoint
-@app.post("/files/", response_model=FileOut, summary="Create Code File", response_description="Created Code File")
-async def create_file(file: FileCreate, db: AsyncSession = Depends(get_db)):
-    """Create a new code file"""
-    new_file = CodeFile(
-        name=file.name,
-        content=file.content,
-        owner_id=file.owner_id
-    )
-    db.add(new_file)
-    await db.commit()
-    await db.refresh(new_file)
-    return new_file
+router = APIRouter()
 
+@router.post("/create-files/", response_model=FileOut, summary="Create Code File", response_description="Created Code File")
+async def create_file(file: FileCreate, db: AsyncSession = Depends(get_db)):
+    print(f"Received file data: {file}")  # Debugging
+    """Create a new code file"""
+    try:
+        new_file = CodeFile(
+            filename=file.name,
+            content=file.content,
+            owner_id=file.owner_id
+        )
+        db.add(new_file)
+        await db.commit()
+        await db.refresh(new_file)
+        return new_file
+    except Exception as e:
+        # Handle any errors that might occur, including the transaction error
+        raise HTTPException(status_code=500, detail=str(e))
+    
 # List files endpoint
 @app.get("/files/", response_model=list[FileOut], summary="List Code Files", response_description="List of code files")
 async def list_files(db: AsyncSession = Depends(get_db)):

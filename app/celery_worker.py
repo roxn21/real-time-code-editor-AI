@@ -1,6 +1,6 @@
 from celery import Celery
 from decouple import config
-from app.database import redis_client
+from app.redis_client import RedisClient  # Correct import
 import json
 import ollama
 
@@ -31,8 +31,12 @@ def analyze_code_task(code: str) -> dict:
     """
     cache_key = f"ai_debug:{hash(code)}"
     
+    # Instantiate Redis client
+    redis_client = RedisClient()
+    redis_conn = redis_client.get_redis_connection()
+
     # Check if result is already cached
-    cached_result = redis_client.get(cache_key)
+    cached_result = redis_conn.get(cache_key)
     if cached_result:
         return json.loads(cached_result)
 
@@ -64,7 +68,7 @@ def analyze_code_task(code: str) -> dict:
         structured_output = json.loads(response["message"]["content"])
         
         # Cache the result for 1 hour
-        redis_client.setex(cache_key, 3600, json.dumps(structured_output))
+        redis_conn.setex(cache_key, 3600, json.dumps(structured_output))
         
         return structured_output
     
@@ -75,5 +79,5 @@ def analyze_code_task(code: str) -> dict:
     
     except Exception as e:
         # Catch any unexpected exceptions
-        print(f"Unexpected error occurred: {str(e)}")
+        print(f"Unexpected error: {str(e)}")
         return {"errors": [], "warnings": [], "optimizations": ["Unexpected error"]}

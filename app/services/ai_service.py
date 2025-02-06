@@ -12,7 +12,7 @@ logger = get_task_logger(__name__)
 
 class AIService:
     def __init__(self):
-        self.redis_client = redis_client()
+        self.redis_client = RedisClient()  # Correct instantiation
 
     def analyze_code(self, code: str) -> Dict[str, Any]:
         """
@@ -28,9 +28,12 @@ class AIService:
 
         try:
             cache_key = f"ai_debug:{hash(code)}"
+            redis_conn = self.redis_client.get_redis_connection()
+            if redis_conn is None:
+                raise Exception("Unable to establish Redis connection")
 
             # Check if result is already cached
-            cached_result = self.redis_client.get_redis_connection().get(cache_key)
+            cached_result = redis_conn.get(cache_key)
             if cached_result:
                 return json.loads(cached_result)
 
@@ -61,10 +64,7 @@ class AIService:
             structured_output = json.loads(response["message"]["content"])
 
             # Cache the result for 1 hour
-            redis_conn = self.redis_client.get_redis_connection()
-            if redis_conn is not None:
-                cache_key = f"ai_debug:{hash(code)}"
-                redis_conn.setex(cache_key, 3600, json.dumps(structured_output))
+            redis_conn.setex(cache_key, 3600, json.dumps(structured_output))
 
             return structured_output
 

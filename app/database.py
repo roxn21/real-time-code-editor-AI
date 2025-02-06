@@ -1,6 +1,7 @@
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker, declarative_base
 from decouple import config
+from fastapi import HTTPException
 import redis
 
 # Load Redis configuration from environment variables
@@ -30,4 +31,4 @@ async def get_db():
         async with async_session() as session:
             yield session
     except Exception as e:
-        print(f"Error getting database session: {e}")
+        raise HTTPException(status_code=500, detail=f"Database connection error: {str(e)}")
