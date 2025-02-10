@@ -15,7 +15,10 @@ from app.celery_worker import celery_app
 import asyncio
 import json
 
+from app.routes import files
+
 app = FastAPI(title="Real-Time Code Editor API", description="FastAPI backend for collaborative code editing with AI-powered debugging.", version="1.0")
+app.include_router(files.router)
 
 # Track active WebSocket sessions per file
 active_sessions: Dict[int, List[WebSocket]] = {}
@@ -68,8 +71,8 @@ async def register_user(user: UserCreate, db: AsyncSession = Depends(get_db)):
     )
     db.add(new_user)
     
-    await db.commit()  # ✅ Commit is now properly handled
-    await db.refresh(new_user)  # ✅ Refresh only after commit
+    await db.commit()  # Commit is now properly handled
+    await db.refresh(new_user)  # Refresh only after commit
 
     return new_user
 
@@ -83,8 +86,8 @@ async def create_file(file: FileCreate, db: AsyncSession = Depends(get_db)):
     )
     db.add(new_file)
     
-    await db.commit()  # ✅ Commit is now properly handled
-    await db.refresh(new_file)  # ✅ Refresh only after commit
+    await db.commit()  # Commit is now properly handled
+    await db.refresh(new_file)  # Refresh only after commit
 
     return new_file
 
