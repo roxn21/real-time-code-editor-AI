@@ -10,7 +10,6 @@ from app.services.ai_service import AIService
 from app.models import User
 from app.routes import files, collaboration
 from app import websockets
-import json
 
 app = FastAPI(title="Real-Time Code Editor API", description="FastAPI backend for collaborative code editing with AI-powered debugging.", version="1.0")
 

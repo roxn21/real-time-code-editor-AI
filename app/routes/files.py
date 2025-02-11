@@ -4,7 +4,7 @@ from sqlalchemy.future import select
 from app.database import get_db
 from app.models import CodeFile
 from app.schemas import FileCreate, FileOut
-from app.middleware.rbac import require_role, get_current_user
+from app.middleware.dependencies import require_role, get_current_user
 
 router = APIRouter(prefix="/files", tags=["Files"])
 

@@ -1,11 +1,8 @@
 from fastapi import Depends, HTTPException, Security
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from app.auth.auth_service import decode_jwt_token
-from slowapi import Limiter
-from slowapi.util import get_remote_address
 
 security = HTTPBearer()
-limiter = Limiter(key_func=get_remote_address)
 
 def get_current_user(credentials: HTTPAuthorizationCredentials = Security(security)):
     """Extracts and verifies the JWT token."""

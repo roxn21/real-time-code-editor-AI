@@ -34,3 +34,5 @@ flake8
 redis
 pytest
 celery
+
+slowapi
