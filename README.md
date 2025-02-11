@@ -1,116 +1,109 @@
-# Real-Time Code Editor API
+# Real-Time Code Editor with AI Debugging
 
-## Overview
-The Real-Time Code Editor API is a FastAPI-based backend that enables real-time collaborative code editing with AI-powered debugging. It provides authentication, role-based access control, WebSocket support for live editing, and AI-based code analysis.
+## 🚀 Project Overview
+This is a **FastAPI-based real-time collaborative code editor** with **AI-assisted debugging**. It enables multiple users to **edit code together**, while an **AI model analyzes and suggests improvements** in real-time.
 
-## Features
-- **User Authentication**: JWT-based authentication for secure access.
-- **Role-Based Access Control**: Different user roles (admin, editor, viewer) for controlled access.
-- **Real-Time Collaboration**: WebSockets for live multi-user code editing.
-- **AI-Powered Debugging**: AI-generated code analysis and debugging suggestions.
-- **File Management**: Secure storage and retrieval of code files.
-- **Database Integration**: Uses SQLAlchemy with SQLite for persistent storage.
-- **Redis Caching**: Improves performance by caching AI suggestions.
+---
 
-## Architecture
-The application follows a modular architecture:
-- `app/main.py`: Entry point for FastAPI.
-- `app/database.py`: Database session and connection management.
-- `app/models.py`: SQLAlchemy models for users, files, and collaborations.
-- `app/schemas.py`: Pydantic schemas for request validation.
-- `app/auth/auth_service.py`: JWT authentication logic.
-- `app/middleware/rbac.py`: Role-based access control middleware.
-- `app/redis_client.py`: Redis integration for caching and real-time updates.
+## 🛠️ Tech Stack
+- **Backend:** FastAPI, SQLAlchemy, Celery
+- **AI Model:** DeepSeek-Coder 6.7B via Ollama
+- **Database:** SQLite (or PostgreSQL in production)
+- **Real-Time Collaboration:** WebSockets + Redis Pub/Sub
+- **Authentication:** JWT-based authentication & role-based access control
+- **Deployment:** Docker, CI/CD (GitHub Actions)
+- **Testing:** Pytest
 
-## Data Models
-### User
-```python
-class User(Base):
-    id: int (Primary Key)
-    username: str (Unique)
-    hashed_password: str
-    role: str (admin/editor/viewer)
+---
+
+## 🔧 Installation & Setup
+### **1️⃣ Clone the Repository**
+```bash
+git clone https://github.com/your-username/real-time-code-editor-AI.git
+cd real-time-code-editor-AI
 ```
 
-### CodeFile
-```python
-class CodeFile(Base):
-    id: int (Primary Key)
-    name: str
-    owner_id: int (Foreign Key to User)
+### **2️⃣ Install Dependencies**
+```bash
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+pip install -r requirements.txt
 ```
 
-### EditingSession
-```python
-class EditingSession(Base):
-    id: int (Primary Key)
-    file_id: int (Foreign Key to CodeFile)
-    user_id: int (Foreign Key to User)
+### **3️⃣ Set Up Environment Variables**
+Create a `.env` file:
+```env
+SECRET_KEY=your_secret_key
+DATABASE_URL=sqlite+aiosqlite:///./test.db
+REDIS_HOST=localhost
+REDIS_PORT=6379
 ```
 
-## API Endpoints
-### Authentication
-- **POST** `/register/` - Register a new user.
-- **POST** `/login/` - Authenticate and retrieve JWT token.
-
-### File Management
-- **GET** `/files/` - List all code files.
-- **POST** `/files/` - Create a new code file.
-
-### Real-Time Collaboration
-- **WebSocket** `/ws/{file_id}` - Connect for live editing.
-
-### AI Debugging
-- **POST** `/ai-debug/` - Analyze code and return AI suggestions.
-
-## Setup & Installation
-### Prerequisites
-- Python 3.10+
-- Redis (Docker recommended)
-- SQLite (default, can be replaced with PostgreSQL)
-
-### Installation Steps
-1. Clone the repository:
-   ```sh
-   git clone https://github.com/yourusername/real-time-code-editor-AI.git
-   cd real-time-code-editor-AI
-   ```
-2. Install dependencies:
-   ```sh
-   pip install -r requirements.txt
-   ```
-3. Set up environment variables:
-   ```sh
-   cp .env.example .env
-   ```
-4. Start Redis (if using Docker):
-   ```sh
-   docker run -d --name redis -p 6379:6379 redis
-   ```
-5. Run the application:
-   ```sh
-   uvicorn app.main:app --reload
-   ```
-
-## Running with Docker
-1. Build and run the Docker container:
-   ```sh
-   docker-compose up --build
-   ```
-
-## Testing
-Run the test suite:
-```sh
-pytest
+### **4️⃣ Start the Services with Docker**
+```bash
+docker-compose up --build
 ```
 
-## API Documentation
-Interactive API docs available at:
-- Swagger UI: `http://127.0.0.1:8000/docs`
-- ReDoc: `http://127.0.0.1:8000/redoc`
+---
 
-## Future Improvements
-- Implement real-time cursor tracking.
-- Enhance AI debugging with LLM-based suggestions.
-- Add support for multiple file formats.
+## 🛠️ API Documentation
+### **🔹 Swagger UI (Interactive API Docs)**
+Once the app is running, open **Swagger UI**:
+- **URL:** `http://localhost:8000/docs`
 
+### **🔹 Postman Collection**
+A Postman collection is provided for testing all API endpoints.
+
+---
+
+## ⚡ Usage
+### **User Authentication**
+- **Register:** `POST /register/`
+- **Login:** `POST /login/`
+
+### **File Management**
+- **Create File:** `POST /files/`
+- **List Files:** `GET /files/`
+- **Edit File:** `PUT /files/{file_id}`
+- **Delete File:** `DELETE /files/{file_id}`
+
+### **Collaboration**
+- **Add Collaborator:** `POST /collaboration/add/{file_id}/{user_id}`
+- **Remove Collaborator:** `DELETE /collaboration/remove/{file_id}/{user_id}`
+
+### **Real-Time Editing (WebSockets)**
+Connect using WebSockets:
+```ws://localhost:8000/ws/{file_id}?token=your_token_here```
+
+### **AI Debugging**
+- **Analyze Code:** `POST /ai-debug/`
+- **Asynchronous Analysis:** `POST /analyze/`
+- **Check Task Status:** `GET /task-status/{task_id}`
+
+---
+
+## 🔒 Security
+- **JWT Authentication** (Token-based access)
+- **Role-Based Access Control (RBAC)** (Owners vs. Collaborators)
+- **Input Validation & Security Measures**
+
+---
+
+## ✅ Testing
+Run all tests using:
+```bash
+pytest -v
+```
+
+---
+
+## 🚀 Deployment
+1️⃣ **Build and push Docker image:**
+```bash
+docker build -t your-dockerhub-username/real-time-code-editor-ai .
+docker push your-dockerhub-username/real-time-code-editor-ai
+```
+
+2️⃣ **Deploy using CI/CD Pipeline** (GitHub Actions triggers deployment on push to `dev` branch).
+
+---
