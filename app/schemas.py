@@ -44,3 +44,7 @@ class EditingSessionOut(BaseModel):
 
     class Config:
         from_attributes = True  # Ensure compatibility with SQLAlchemy models
+        
+# To validate input data for the AI debugging API
+class CodeInput(BaseModel):
+    code: str
